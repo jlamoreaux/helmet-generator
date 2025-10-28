@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ImageUpload from "./components/ImageUpload";
 import HelmetForm from "./components/HelmetForm";
 import ResultsDisplay from "./components/ResultsDisplay";
+import DebugPanel from "./components/DebugPanel";
 import Card from "./components/ui/Card";
 import ProgressSteps from "./components/ui/ProgressSteps";
 import Loading from "./components/ui/Loading";
@@ -112,6 +113,17 @@ export default function Home() {
     setDevBypassStatus(null);
   };
 
+  const handleQuickTest = () => {
+    // Set dummy data and go straight to results
+    setUploadedImage(new File([""], "test.jpg", { type: "image/jpeg" }));
+    setHelmetDescription("Test helmet");
+    setGeneratedHelmet("https://replicate.delivery/xezq/UF22qwPiLkoyGhl4BxlTGah91jKRu4S8R1ucndiK38GSD3YF/tmp9ef1zrz4.jpg");
+    setProcessedFaceImage("https://replicate.delivery/xezq/eIMfbkWEnmrjsUpRAbYFLNYlMU3TLc0oVh1wSvWrXFAFNcjVA/tmp3ocarqid.png");
+    setFaceDepthMap("https://replicate.delivery/czjl/fRBY17IIXzXcOaLJSmaQR9XKpENWHXQzsXmOL6sjec2MQcjVA/out.png");
+    setHelmetDepthMap("https://replicate.delivery/czjl/ExVd6eI15KyzNKSfj3L2IC0khcZvnRMMUq5fEjSqJpHdg4GrA/out.png");
+    setCurrentStep("results");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
       <div className="container mx-auto px-4 py-8">
@@ -201,28 +213,7 @@ export default function Home() {
             {currentStep === "upload" && (
               <div>
                 <ImageUpload onImageUpload={handleImageUpload} />
-                
-                {/* Debug: Quick test button */}
-                <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
-                  <div className="text-center">
-                    <button
-                      onClick={() => {
-                        // Set dummy data and go straight to results
-                        setUploadedImage(new File([""], "test.jpg", { type: "image/jpeg" }));
-                        setHelmetDescription("Test helmet");
-                        setGeneratedHelmet("https://replicate.delivery/xezq/UF22qwPiLkoyGhl4BxlTGah91jKRu4S8R1ucndiK38GSD3YF/tmp9ef1zrz4.jpg");
-                        setProcessedFaceImage("https://replicate.delivery/xezq/eIMfbkWEnmrjsUpRAbYFLNYlMU3TLc0oVh1wSvWrXFAFNcjVA/tmp3ocarqid.png");
-                        setFaceDepthMap("https://replicate.delivery/czjl/fRBY17IIXzXcOaLJSmaQR9XKpENWHXQzsXmOL6sjec2MQcjVA/out.png");
-                        setHelmetDepthMap("https://replicate.delivery/czjl/ExVd6eI15KyzNKSfj3L2IC0khcZvnRMMUq5fEjSqJpHdg4GrA/out.png");
-                        setCurrentStep("results");
-                      }}
-                      className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      🚀 Quick Test Results (Debug)
-                    </button>
-                    <p className="text-xs text-zinc-500 mt-2">Skip generation and test 3D scene directly</p>
-                  </div>
-                </div>
+                <DebugPanel onQuickTest={handleQuickTest} />
               </div>
             )}
             
