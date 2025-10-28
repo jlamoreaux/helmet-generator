@@ -71,18 +71,14 @@ export default function HelmetScene({
   // Process assets: auto-detect rotation and create fresh blob URLs
   useEffect(() => {
     const processAssets = async () => {
-      console.log('🔄 Processing assets with auto-rotation detection...');
       try {
         // Process face image with rotation detection
         const faceUrl = typeof originalImage === 'string' ? originalImage : URL.createObjectURL(originalImage);
         
-        console.log('🔍 Analyzing face image orientation...');
         const faceAnalysis = await analyzeImageOrientation(faceUrl);
-        console.log('📊 Face analysis result:', faceAnalysis);
         
         // Apply suggested rotation or minimal processing for fresh blob URL
         const faceRotation = faceAnalysis.confidence === 'high' ? faceAnalysis.suggestedRotation : 0;
-        console.log(`🔄 Applying ${faceRotation}° rotation to face image`);
         const processedFace = await rotateImage(faceUrl, faceRotation);
         
         // Process helmet image - minimal processing for fresh blob URL
@@ -93,7 +89,6 @@ export default function HelmetScene({
           helmetImage: processedHelmet
         });
         
-        console.log('✅ Assets processed with rotation detection complete');
         
         // Clean up temporary object URL if created
         if (typeof originalImage !== 'string') {
@@ -125,17 +120,8 @@ export default function HelmetScene({
   useEffect(() => {
     // Wait for processed assets to be ready
     if (!processedAssets.faceImage || !processedAssets.helmetImage) {
-      console.log('⏳ Waiting for assets to be processed...');
       return;
     }
-    
-    console.log('🔄 HelmetScene effect triggered with processed assets:', {
-      processedFace: processedAssets.faceImage.substring(0, 50) + '...',
-      processedHelmet: processedAssets.helmetImage.substring(0, 50) + '...',
-      faceDepthMap: faceDepthMap?.substring(0, 50) + '...',
-      helmetDepthMap: helmetDepthMap?.substring(0, 50) + '...',
-      helmetSize, helmetX, helmetY, helmetZ, faceDepthScale, helmetDepthScale
-    });
     
     if (!mountRef.current) return;
 
@@ -148,7 +134,6 @@ export default function HelmetScene({
     });
 
     return () => {
-      console.log('🧹 HelmetScene cleanup triggered');
       cleanup();
     };
   }, [processedAssets.faceImage, processedAssets.helmetImage, faceDepthMap, helmetDepthMap]); // Rebuild when processed assets change
@@ -198,12 +183,9 @@ export default function HelmetScene({
   }, [faceDepthScale, helmetDepthScale]);
 
   const initializeScene = () => {
-    console.log('🚀 initializeScene called');
     if (!mountRef.current) {
-      console.log('❌ No mountRef.current, aborting');
       return;
     }
-    console.log('✅ mountRef.current exists, proceeding with scene setup');
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -220,15 +202,6 @@ export default function HelmetScene({
     camera.position.set(0, 0, 2);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
-    
-    console.log('📷 Camera setup:', {
-      position: camera.position,
-      rotation: camera.rotation,
-      fov: camera.fov,
-      aspect: camera.aspect,
-      near: camera.near,
-      far: camera.far
-    });
 
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ 
@@ -239,14 +212,6 @@ export default function HelmetScene({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     rendererRef.current = renderer;
     mountRef.current.appendChild(renderer.domElement);
-    
-    console.log('🖥️ Renderer setup:', {
-      size: { width: mountRef.current.clientWidth, height: mountRef.current.clientHeight },
-      pixelRatio: renderer.getPixelRatio(),
-      domElement: renderer.domElement,
-      webglSupported: renderer.capabilities,
-      canvas: renderer.domElement.tagName
-    });
 
     // Mouse tracking with velocity calculation and trail
     const handleMouseMove = (event: MouseEvent) => {
@@ -312,10 +277,8 @@ export default function HelmetScene({
       // Log every 60 frames (roughly every 1 second at 60fps)
       frameCount++;
       if (frameCount % 60 === 0) {
-        console.log('🎥 Render loop running - frame:', frameCount, 'scene children:', scene.children.length);
       }
     };
-    console.log('🎬 Starting animation loop...');
     animate();
 
     // Handle resize
@@ -332,7 +295,6 @@ export default function HelmetScene({
 
   const loadAssets = async () => {
     setIsLoading(true);
-    console.log('Loading 3D assets...', { originalImage, helmetImage, faceDepthMap, helmetDepthMap });
     
     try {
       const textureLoader = new THREE.TextureLoader();
@@ -342,7 +304,6 @@ export default function HelmetScene({
       // Helper function to load texture with timeout
       const loadTextureWithTimeout = (url: string, timeoutMs = 10000): Promise<THREE.Texture> => {
         return new Promise((resolve, reject) => {
-          console.log(`Loading texture: ${url}`);
           const timeout = setTimeout(() => {
             reject(new Error(`Texture loading timeout: ${url}`));
           }, timeoutMs);
@@ -350,7 +311,6 @@ export default function HelmetScene({
           textureLoader.load(
             url, 
             (texture) => {
-              console.log(`Successfully loaded texture: ${url}`);
               clearTimeout(timeout);
               resolve(texture);
             },
@@ -365,11 +325,9 @@ export default function HelmetScene({
       };
       
       // Load processed face image (fresh blob URL)
-      console.log('Loading face texture from processed asset:', processedAssets.faceImage);
       const faceTexture = await loadTextureWithTimeout(processedAssets.faceImage!);
 
       // Load processed helmet texture (fresh blob URL)
-      console.log('Loading helmet texture from processed asset:', processedAssets.helmetImage);
       const helmetTexture = await loadTextureWithTimeout(processedAssets.helmetImage!);
 
       // Load depth maps if available
@@ -378,7 +336,6 @@ export default function HelmetScene({
 
       if (faceDepthMap) {
         try {
-          console.log('Loading face depth map from:', faceDepthMap);
           faceDepthTexture = await loadTextureWithTimeout(faceDepthMap);
         } catch (error) {
           console.warn('Failed to load face depth map:', error);
@@ -388,7 +345,6 @@ export default function HelmetScene({
 
       if (helmetDepthMap) {
         try {
-          console.log('Loading helmet depth map from:', helmetDepthMap);
           helmetDepthTexture = await loadTextureWithTimeout(helmetDepthMap);
         } catch (error) {
           console.warn('Failed to load helmet depth map:', error);
@@ -396,46 +352,8 @@ export default function HelmetScene({
         }
       }
 
-      console.log('Creating 3D meshes...');
-      console.log('Depth textures status:', {
-        faceDepthTexture: faceDepthTexture ? '✅ Loaded' : '❌ Missing',
-        helmetDepthTexture: helmetDepthTexture ? '✅ Loaded' : '❌ Missing',
-        faceDepthMapUrl: faceDepthMap,
-        helmetDepthMapUrl: helmetDepthMap
-      });
-      
-      console.log('🎯 Final texture check before mesh creation:', {
-        faceTexture: {
-          loaded: !!faceTexture,
-          width: faceTexture?.image?.width,
-          height: faceTexture?.image?.height,
-          format: faceTexture?.format,
-          type: faceTexture?.type
-        },
-        helmetTexture: {
-          loaded: !!helmetTexture,
-          width: helmetTexture?.image?.width,
-          height: helmetTexture?.image?.height,
-          format: helmetTexture?.format,
-          type: helmetTexture?.type
-        },
-        faceDepthTexture: {
-          loaded: !!faceDepthTexture,
-          width: faceDepthTexture?.image?.width,
-          height: faceDepthTexture?.image?.height,
-          isDepthMap: true
-        },
-        helmetDepthTexture: {
-          loaded: !!helmetDepthTexture,
-          width: helmetDepthTexture?.image?.width,
-          height: helmetDepthTexture?.image?.height,
-          isDepthMap: true
-        }
-      });
-      
       createDepthBasedMeshes(faceTexture, helmetTexture, faceDepthTexture, helmetDepthTexture);
       
-      console.log('3D scene ready!');
       setIsLoading(false);
       onSceneReady?.();
     } catch (error) {
@@ -450,13 +368,6 @@ export default function HelmetScene({
     faceDepthTexture: THREE.Texture | null,
     helmetDepthTexture: THREE.Texture | null
   ) => {
-    console.log('🏗️ createDepthBasedMeshes called with:', {
-      faceTexture: !!faceTexture,
-      helmetTexture: !!helmetTexture,
-      faceDepthTexture: !!faceDepthTexture,
-      helmetDepthTexture: !!helmetDepthTexture,
-      sceneExists: !!sceneRef.current
-    });
     
     if (!sceneRef.current) {
       console.error('❌ Scene not available for mesh creation');
@@ -464,37 +375,23 @@ export default function HelmetScene({
     }
 
     const scene = sceneRef.current;
-    console.log('✅ Scene available, starting mesh creation');
     
     // Clear any existing meshes to prevent duplicates
     const existingFace = scene.getObjectByName('face');
     const existingHelmet = scene.getObjectByName('helmet');
     if (existingFace) {
-      console.log('🗑️ Removing existing face mesh');
       scene.remove(existingFace);
     }
     if (existingHelmet) {
-      console.log('🗑️ Removing existing helmet mesh');
       scene.remove(existingHelmet);
     }
-    console.log('🧹 Scene cleaned, current children:', scene.children.length);
 
     // Calculate aspect ratios to prevent squishing
     const faceAspect = faceTexture.image.width / faceTexture.image.height;
     const helmetAspect = helmetTexture.image.width / helmetTexture.image.height;
-    
-    console.log('📐 Calculated aspect ratios:', {
-      faceAspect: faceAspect,
-      helmetAspect: helmetAspect,
-      faceSize: `${faceTexture.image.width}x${faceTexture.image.height}`,
-      helmetSize: `${helmetTexture.image.width}x${helmetTexture.image.height}`
-    });
 
     // Create face plane with correct aspect ratio and no background artifacts
-    console.log('🔷 Creating face geometry...');
     const faceGeometry = new THREE.PlaneGeometry(2 * faceAspect, 2, 128, 128);
-    
-    console.log('🎨 Creating face material with shaders...');
     const faceMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uTexture: { value: faceTexture },
@@ -511,7 +408,6 @@ export default function HelmetScene({
     
     // Force shader compilation and check for errors
     if (rendererRef.current) {
-      console.log('🔍 Forcing face shader compilation...');
       rendererRef.current.compile(sceneRef.current!, cameraRef.current!);
       
       // Check if the program compiled successfully
@@ -520,7 +416,6 @@ export default function HelmetScene({
         if (program) {
           const gl = rendererRef.current!.getContext();
           if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.log('✅ Face shader compiled successfully');
           } else {
             console.error('❌ Face shader compilation failed:', gl.getProgramInfoLog(program));
           }
@@ -528,12 +423,10 @@ export default function HelmetScene({
       }, 100);
     }
 
-    console.log('🎭 Creating and adding face mesh to scene...');
     const faceMesh = new THREE.Mesh(faceGeometry, faceMaterial);
     faceMesh.name = 'face';
     faceMesh.position.set(0, 0, 0); // Keep face at center
     scene.add(faceMesh);
-    console.log('✅ Face mesh added to scene');
 
     // Create helmet plane with base aspect ratio (scale will be applied via useEffect)
     const helmetGeometry = new THREE.PlaneGeometry(helmetAspect * 2.0, 2.0, 128, 128);
@@ -563,17 +456,11 @@ export default function HelmetScene({
       alphaTest: 0.1 // Remove background artifacts
     });
 
-    console.log('🪖 Creating and adding helmet mesh to scene...');
     const helmetMesh = new THREE.Mesh(helmetGeometry, helmetMaterial);
     helmetMesh.name = 'helmet';
     helmetMesh.position.set(helmetX, helmetY, helmetZ); // Use adjustable position
     helmetMesh.scale.set(1, 1, 1); // Base scale (helmetSize will be applied via useEffect)
-    scene.add(helmetMesh);
-    console.log('✅ Helmet mesh added to scene');
-    
-    
-    console.log('🎬 Scene setup complete! Total children:', scene.children.length);
-    console.log('📦 Scene children:', scene.children.map(child => ({ name: child.name, type: child.constructor.name })));
+    scene.add(helmetMesh);    
   };
 
   const updateScene = () => {

@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     const devAssets = await checkDevAssets();
     
     if (devAssets.shouldBypass) {
-      console.log("🚀 DEV BYPASS ENABLED:", devAssets.reason);
       
       // Save uploaded image for dev consistency if needed
       const savedFaceImage = await saveUploadedImageForDev(imageData);
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log("🤖 AI GENERATION MODE: Proceeding with optimized model execution order");
 
     // Get model configurations
     const backgroundRemovalModel = process.env.REPLICATE_BACKGROUND_REMOVAL_MODEL;
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
     }
 
     // STEP 1 & 2: Run face background removal and helmet generation in parallel
-    console.log("Step 1/3: Starting face background removal and helmet generation in parallel...");
     
     const helmetPrompt = `A ${description}, front view, head-on perspective, centered, professional product photography, high quality, detailed, realistic, studio lighting, transparent background, isolated on transparent background, facing forward directly, clean visor with no reflections, clear visor surface`;
     
@@ -94,7 +91,6 @@ export async function POST(request: NextRequest) {
       try {
         const faceRemovalOutput = faceRemovalResult.value as ImageResponse;
         processedFaceImageData = faceRemovalOutput.url().href;
-        console.log("✅ Face background removal completed");
       } catch (error: any) {
         console.error("Face background removal processing failed:", error);
         throw new Error(`Failed to process background removal result: ${error.message || 'Unknown error'}`);
@@ -110,7 +106,6 @@ export async function POST(request: NextRequest) {
       try {
         const helmetOutput = helmetGenerationResult.value as HelmetResponse;
         processedHelmetImageUrl = helmetOutput[0].url().href;
-        console.log("✅ Helmet image generated");
       } catch (error: any) {
         console.error("Helmet generation processing failed:", error);
         throw new Error(`Failed to process helmet generation result: ${error.message || 'Unknown error'}`);
@@ -121,7 +116,6 @@ export async function POST(request: NextRequest) {
     }
 
     // STEP 2: Remove background from helmet image
-    console.log("Step 2/4: Removing background from helmet image...");
     let processedHelmetImageData: string;
     try {
       const helmetRemovalOutput = await replicate.run(
@@ -134,22 +128,17 @@ export async function POST(request: NextRequest) {
       ) as ImageResponse;
       
       processedHelmetImageData = helmetRemovalOutput.url().href;
-      console.log("✅ Helmet background removal completed");
     } catch (error: any) {
       console.error("Helmet background removal failed:", error);
       throw new Error(`Failed to remove background from helmet: ${error.message || 'Unknown error'}. Please try again.`);
     }
 
     // STEP 3: Generate depth maps in parallel (now that we have both clean images)
-    console.log("Step 3/4: Generating depth maps for both images...");
     
     let faceDepthOutput = null;
     let helmetDepthOutput = null;
     
     if (depthModel) {
-      console.log("🔍 Depth model:", depthModel);
-      console.log("🔍 Face input image:", processedFaceImageData ? "✅ Present" : "❌ Missing");
-      console.log("🔍 Helmet input image:", processedHelmetImageData ? "✅ Present" : "❌ Missing");
       
       const [faceDepthResult, helmetDepthResult] = await Promise.allSettled([
         // Face depth map
@@ -176,23 +165,17 @@ export async function POST(request: NextRequest) {
       if (faceDepthResult.status === 'fulfilled') {
         try {
           const faceDepthData = faceDepthResult.value;
-          console.log("🔍 Face depth raw result type:", typeof faceDepthData);
 
           faceDepthOutput = faceDepthData.url().href;
 
-          console.log("✅ Face depth map generated");
-          console.log("Face depth map URL:", faceDepthOutput);
           
           
           
           // if (typeof faceDepthData === 'string') {
           //   faceDepthOutput = faceDepthData;
-          //   console.log("✅ Face depth map generated (string)");
           // } else if (Array.isArray(faceDepthData) && faceDepthData.length > 0) {
           //   faceDepthOutput = faceDepthData[0];
-          //   console.log("✅ Face depth map generated (array)");
           // } else if (faceDepthData) {
-          //   console.log("🔄 Processing ReadableStream for face depth...", {faceDepthData.url().href});
           //   const results = [];
           //   for await (const chunk of faceDepthData as any) {
           //     results.push(chunk);
@@ -201,7 +184,6 @@ export async function POST(request: NextRequest) {
           //     const uint8Array = results[0] as Uint8Array;
           //     const base64 = Buffer.from(uint8Array).toString('base64');
           //     faceDepthOutput = `data:image/png;base64,${base64}`;
-          //     console.log("✅ Face depth map generated (converted to data URL)");
           //   }
           // }
         } catch (error: any) {
@@ -215,22 +197,16 @@ export async function POST(request: NextRequest) {
       if (helmetDepthResult.status === 'fulfilled') {
         try {
           const helmetDepthData = helmetDepthResult.value;
-          console.log("🔍 Helmet depth raw result type:", typeof helmetDepthData);
 
           helmetDepthOutput = helmetDepthData.url().href;
 
-          console.log("✅ Helmet depth map generated");
-          console.log("Helmet depth map URL:", helmetDepthOutput);
           
           
           // if (typeof helmetDepthData === 'string') {
           //   helmetDepthOutput = helmetDepthData;
-          //   console.log("✅ Helmet depth map generated (string)");
           // } else if (Array.isArray(helmetDepthData) && helmetDepthData.length > 0) {
           //   helmetDepthOutput = helmetDepthData[0];
-          //   console.log("✅ Helmet depth map generated (array)");
           // } else if (helmetDepthData && typeof helmetDepthData === 'object') {
-          //   console.log("🔄 Processing ReadableStream for helmet depth...");
           //   const results = [];
           //   for await (const chunk of helmetDepthData as any) {
           //     results.push(chunk);
@@ -239,7 +215,6 @@ export async function POST(request: NextRequest) {
           //     const uint8Array = results[0] as Uint8Array;
           //     const base64 = Buffer.from(uint8Array).toString('base64');
           //     helmetDepthOutput = `data:image/png;base64,${base64}`;
-          //     console.log("✅ Helmet depth map generated (converted to data URL)");
           //   }
           // }
         } catch (error: any) {
@@ -249,11 +224,9 @@ export async function POST(request: NextRequest) {
         console.warn("❌ Helmet depth map generation failed:", helmetDepthResult.reason);
       }
     } else {
-      console.log("Step 2/3: Skipping depth maps (model not configured)");
     }
 
 
-    console.log("🎉 All generation steps completed!");
 
     // Debug: Log the response data before sending
     const responseData = {
@@ -262,13 +235,6 @@ export async function POST(request: NextRequest) {
       faceDepthMapUrl: faceDepthOutput,
       helmetDepthMapUrl: helmetDepthOutput,
     };
-    
-    console.log("📤 Sending response data:", {
-      helmetUrl: responseData.helmetUrl ? "✅ Present" : "❌ Missing",
-      faceImageUrl: responseData.faceImageUrl ? "✅ Present" : "❌ Missing", 
-      faceDepthMapUrl: responseData.faceDepthMapUrl ? "✅ Present" : "❌ Missing",
-      helmetDepthMapUrl: responseData.helmetDepthMapUrl ? "✅ Present" : "❌ Missing",
-    });
 
     return NextResponse.json(responseData);
   } catch (error: any) {

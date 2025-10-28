@@ -81,7 +81,6 @@ export default function ResultsDisplay({
     const preloadImages = async () => {
       if (!processedFaceImage || !generatedHelmet) return;
       
-      console.log('🖼️ Preloading images before HelmetScene...');
       setImagesLoaded(false);
       
       try {
@@ -94,7 +93,6 @@ export default function ResultsDisplay({
             const img = new Image();
             img.crossOrigin = 'anonymous'; // For CORS
             img.onload = () => {
-              console.log(`✅ Loaded: ${src.substring(0, 50)}...`);
               resolve(img);
             };
             img.onerror = () => {
@@ -106,7 +104,6 @@ export default function ResultsDisplay({
         });
         
         await Promise.all(imagePromises);
-        console.log('🎉 All images preloaded successfully!');
         setImagesLoaded(true);
         
       } catch (error) {
@@ -124,7 +121,6 @@ export default function ResultsDisplay({
     const applyRotation = async () => {
       if (faceRotation > 0 && imagesLoaded && processedFaceImage) {
         try {
-          console.log('🔄 Applying face rotation after preload:', faceRotation);
           const rotatedFace = await rotateImage(processedFaceImage, faceRotation);
           setCorrectedAssets(prev => ({
             ...prev,
@@ -161,22 +157,8 @@ export default function ResultsDisplay({
     }
   };
 
-  // Debug logging
-  console.log('🔍 ResultsDisplay render state:', {
-    processedFaceImage: !!processedFaceImage,
-    generatedHelmet: !!generatedHelmet,
-    imagesLoaded,
-    correctedAssets,
-    faceRotation
-  });
-
   // Validation - simplified, ignore preloading for now
   if (!processedFaceImage || !generatedHelmet) {
-    console.log('⏳ Still waiting:', { 
-      hasProcessedFace: !!processedFaceImage, 
-      hasGeneratedHelmet: !!generatedHelmet, 
-      imagesLoaded 
-    });
     return (
       <div className="text-center text-zinc-500 dark:text-zinc-400 py-8">
         <p>{!imagesLoaded ? 'Preloading images...' : 'Loading your interactive helmet...'}</p>

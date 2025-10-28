@@ -22,15 +22,6 @@ export async function generateHelmet(imageFile: File, description: string): Prom
 
     const result: ReplicateImageResponse = await response.json();
     
-    // Debug: Log what we received from the API
-    console.log("📥 Received from API:", {
-      helmetUrl: result.helmetUrl ? "✅ Present" : "❌ Missing",
-      faceImageUrl: result.faceImageUrl ? "✅ Present" : "❌ Missing",
-      faceDepthMapUrl: result.faceDepthMapUrl ? "✅ Present" : "❌ Missing", 
-      helmetDepthMapUrl: result.helmetDepthMapUrl ? "✅ Present" : "❌ Missing",
-      devBypass: result.devBypass || false
-    });
-    
     return result;
   } catch (error) {
     console.error('Error in generateHelmet:', error);

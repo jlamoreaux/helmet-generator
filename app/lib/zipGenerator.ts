@@ -21,29 +21,44 @@ export async function generateHelmetZip(assets: HelmetAssets): Promise<void> {
       throw new Error("Failed to create zip folders");
     }
 
+    // Convert images to base64 data URLs for the HTML
+    
     // Add original image
     assetsFolder.file("original-face.jpg", assets.originalImage);
+    const faceDataUrl = await fileToDataUrl(assets.originalImage);
 
     // Download and add helmet image
     const helmetResponse = await fetch(assets.helmetImageUrl);
     const helmetBlob = await helmetResponse.blob();
     assetsFolder.file("generated-helmet.jpg", helmetBlob);
+    const helmetDataUrl = await blobToDataUrl(helmetBlob);
 
     // Download and add depth maps if available
+    let faceDepthDataUrl: string | null = null;
+    let helmetDepthDataUrl: string | null = null;
+    
     if (assets.faceDepthMapUrl) {
       const faceDepthResponse = await fetch(assets.faceDepthMapUrl);
       const faceDepthBlob = await faceDepthResponse.blob();
       assetsFolder.file("face-depth-map.jpg", faceDepthBlob);
+      faceDepthDataUrl = await blobToDataUrl(faceDepthBlob);
     }
 
     if (assets.helmetDepthMapUrl) {
       const helmetDepthResponse = await fetch(assets.helmetDepthMapUrl);
       const helmetDepthBlob = await helmetDepthResponse.blob();
       assetsFolder.file("helmet-depth-map.jpg", helmetDepthBlob);
+      helmetDepthDataUrl = await blobToDataUrl(helmetDepthBlob);
     }
 
-    // Generate HTML file
-    const htmlContent = generateHTMLTemplate(assets);
+
+    // Generate HTML file with embedded base64 images
+    const htmlContent = generateHTMLTemplate(assets, {
+      faceDataUrl,
+      helmetDataUrl,
+      faceDepthDataUrl,
+      helmetDepthDataUrl
+    });
     srcFolder.file("index.html", htmlContent);
 
     // Generate JavaScript file
@@ -63,7 +78,22 @@ export async function generateHelmetZip(assets: HelmetAssets): Promise<void> {
     
     // Download the zip file
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-    saveAs(zipBlob, `helmet-interactive-${timestamp}.zip`);
+    const filename = `helmet-interactive-${timestamp}.zip`;
+    
+    try {
+      saveAs(zipBlob, filename);
+    } catch (saveError) {
+      console.error('❌ File save failed:', saveError);
+      // Fallback: try manual download
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
     
   } catch (error) {
     console.error('Error generating zip file:', error);
@@ -71,7 +101,33 @@ export async function generateHelmetZip(assets: HelmetAssets): Promise<void> {
   }
 }
 
-function generateHTMLTemplate(assets: HelmetAssets): string {
+// Helper functions for converting images to data URLs
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+interface DataUrls {
+  faceDataUrl: string;
+  helmetDataUrl: string;
+  faceDepthDataUrl: string | null;
+  helmetDepthDataUrl: string | null;
+}
+
+function generateHTMLTemplate(assets: HelmetAssets, dataUrls: DataUrls): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -96,10 +152,10 @@ function generateHTMLTemplate(assets: HelmetAssets): string {
             initHelmetScene({
                 container: document.getElementById('helmet-canvas'),
                 assets: {
-                    faceImage: '../assets/original-face.jpg',
-                    helmetImage: '../assets/generated-helmet.jpg',
-                    faceDepthMap: ${assets.faceDepthMapUrl ? "'../assets/face-depth-map.jpg'" : 'null'},
-                    helmetDepthMap: ${assets.helmetDepthMapUrl ? "'../assets/helmet-depth-map.jpg'" : 'null'}
+                    faceImage: '${dataUrls.faceDataUrl}',
+                    helmetImage: '${dataUrls.helmetDataUrl}',
+                    faceDepthMap: ${dataUrls.faceDepthDataUrl ? `'${dataUrls.faceDepthDataUrl}'` : 'null'},
+                    helmetDepthMap: ${dataUrls.helmetDepthDataUrl ? `'${dataUrls.helmetDepthDataUrl}'` : 'null'}
                 }
             });
         });

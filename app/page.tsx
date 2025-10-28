@@ -54,16 +54,6 @@ export default function Home() {
       
       const result = await generateHelmet(uploadedImage, description);
       
-      // Debug: Log what we're setting in state
-      console.log("🎯 Setting state with:", {
-        helmetUrl: result.helmetUrl ? "✅ Present" : "❌ Missing",
-        faceImageUrl: result.faceImageUrl ? "✅ Present" : "❌ Missing", 
-        faceDepthMapUrl: result.faceDepthMapUrl ? "✅ Present" : "❌ Missing",
-        helmetDepthMapUrl: result.helmetDepthMapUrl ? "✅ Present" : "❌ Missing",
-        faceDepthMapValue: result.faceDepthMapUrl,
-        helmetDepthMapValue: result.helmetDepthMapUrl
-      });
-      
       setGeneratedHelmet(result.helmetUrl);
       setProcessedFaceImage(result.faceImageUrl);
       setFaceDepthMap(result.faceDepthMapUrl);
