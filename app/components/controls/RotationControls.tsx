@@ -1,31 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import Button from "../ui/Button";
 import { rotateImage } from "../../lib/imageRotation";
 
+interface RotatableAssets {
+  faceImage: string;
+  helmetImage: string;
+  faceDepthMap: string | null;
+  helmetDepthMap: string | null;
+}
+
 interface RotationControlsProps {
-  correctedAssets: {
-    faceImage: string;
-    helmetImage: string;
-    faceDepthMap: string | null;
-    helmetDepthMap: string | null;
-  };
-  setCorrectedAssets: (assets: any) => void;
+  correctedAssets: RotatableAssets;
+  setCorrectedAssets: Dispatch<SetStateAction<RotatableAssets>>;
   faceRotation: number;
   setFaceRotation: (rotation: number | ((prev: number) => number)) => void;
   helmetRotation: number;
   setHelmetRotation: (rotation: number | ((prev: number) => number)) => void;
-  faceDepthRotation: number;
-  setFaceDepthRotation: (rotation: number | ((prev: number) => number)) => void;
-  helmetDepthRotation: number;
-  setHelmetDepthRotation: (rotation: number | ((prev: number) => number)) => void;
-  originalAssets: {
-    faceImage: string;
-    helmetImage: string;
-    faceDepthMap: string | null;
-    helmetDepthMap: string | null;
-  };
+  originalAssets: RotatableAssets;
 }
 
 export default function RotationControls({
@@ -35,10 +28,6 @@ export default function RotationControls({
   setFaceRotation,
   helmetRotation,
   setHelmetRotation,
-  faceDepthRotation,
-  setFaceDepthRotation,
-  helmetDepthRotation,
-  setHelmetDepthRotation,
   originalAssets
 }: RotationControlsProps) {
   const [isRotating, setIsRotating] = useState<string | null>(null);
@@ -47,7 +36,7 @@ export default function RotationControls({
     setIsRotating('face');
     try {
       const rotated = await rotateImage(correctedAssets.faceImage, 90);
-      setCorrectedAssets((prev: any) => ({ ...prev, faceImage: rotated }));
+      setCorrectedAssets((prev) => ({ ...prev, faceImage: rotated }));
       setFaceRotation(prev => (prev + 90) % 360);
     } catch (error) {
       console.error('Face rotation failed:', error);
@@ -60,7 +49,7 @@ export default function RotationControls({
     setIsRotating('helmet');
     try {
       const rotated = await rotateImage(correctedAssets.helmetImage, 90);
-      setCorrectedAssets((prev: any) => ({ ...prev, helmetImage: rotated }));
+      setCorrectedAssets((prev) => ({ ...prev, helmetImage: rotated }));
       setHelmetRotation(prev => (prev + 90) % 360);
     } catch (error) {
       console.error('Helmet rotation failed:', error);
@@ -73,8 +62,6 @@ export default function RotationControls({
     setCorrectedAssets(originalAssets);
     setFaceRotation(0); // No automatic rotation
     setHelmetRotation(0);
-    setFaceDepthRotation(0);
-    setHelmetDepthRotation(0);
   };
 
   return (
