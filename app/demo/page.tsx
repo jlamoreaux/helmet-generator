@@ -5,9 +5,23 @@ import HelmetScene from "../components/three/HelmetScene";
 import Button from "../components/ui/Button";
 import { rotateImage } from "../lib/imageRotation";
 
+interface AssetFileStatus {
+  exists: boolean;
+  size?: number;
+  modified?: string;
+  error?: string;
+}
+
+interface AssetStatus {
+  directory?: string;
+  files?: Record<string, AssetFileStatus>;
+  allPresent?: boolean;
+  error?: string;
+}
+
 export default function DemoPage() {
   const [sceneReady, setSceneReady] = useState(false);
-  const [assetStatus, setAssetStatus] = useState<any>(null);
+  const [assetStatus, setAssetStatus] = useState<AssetStatus | null>(null);
   const [checkingAssets, setCheckingAssets] = useState(true);
   
   // Helmet adjustment controls
@@ -26,8 +40,6 @@ export default function DemoPage() {
   // Image rotation controls
   const [faceRotation, setFaceRotation] = useState(90); // Fix the 90-degree rotation for face
   const [helmetRotation, setHelmetRotation] = useState(0);
-  const [faceDepthRotation, setFaceDepthRotation] = useState(0);
-  const [helmetDepthRotation, setHelmetDepthRotation] = useState(0);
 
   // Demo assets - using real generated URLs for testing
   const originalAssets = {
@@ -40,8 +52,30 @@ export default function DemoPage() {
   // Corrected/rotated image states
   const [correctedAssets, setCorrectedAssets] = useState(originalAssets);
 
+  // Fetches dev asset status without touching state, so the mount effect only
+  // sets state asynchronously once the request settles.
+  const fetchAssetStatus = async (): Promise<AssetStatus> => {
+    try {
+      const response = await fetch('/api/check-assets');
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to check assets:', error);
+      return { error: 'Failed to check assets' };
+    }
+  };
+
+  const applyAssetStatus = (status: AssetStatus) => {
+    setAssetStatus(status);
+    setCheckingAssets(false);
+  };
+
+  const checkAssets = () => {
+    setCheckingAssets(true);
+    fetchAssetStatus().then(applyAssetStatus);
+  };
+
   useEffect(() => {
-    checkAssets();
+    fetchAssetStatus().then(applyAssetStatus);
   }, []);
 
   // Apply initial face rotation fix
@@ -62,20 +96,6 @@ export default function DemoPage() {
     
     applyFaceRotation();
   }, []); // Run once on mount
-
-  const checkAssets = async () => {
-    setCheckingAssets(true);
-    try {
-      const response = await fetch('/api/check-assets');
-      const data = await response.json();
-      setAssetStatus(data);
-    } catch (error) {
-      console.error('Failed to check assets:', error);
-      setAssetStatus({ error: 'Failed to check assets' });
-    } finally {
-      setCheckingAssets(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
@@ -119,14 +139,14 @@ export default function DemoPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    {assetStatus?.files && Object.entries(assetStatus.files).map(([filename, status]: [string, any]) => (
+                    {assetStatus?.files && Object.entries(assetStatus.files).map(([filename, status]) => (
                       <div key={filename} className="flex items-center space-x-2">
                         <span className={status.exists ? 'text-green-600' : 'text-red-600'}>
                           {status.exists ? '✅' : '❌'}
                         </span>
                         <span className="font-mono text-zinc-600 dark:text-zinc-400">{filename}</span>
                         {status.exists && (
-                          <span className="text-xs text-zinc-500">({Math.round(status.size / 1024)}KB)</span>
+                          <span className="text-xs text-zinc-500">({Math.round((status.size ?? 0) / 1024)}KB)</span>
                         )}
                       </div>
                     ))}
@@ -395,8 +415,6 @@ export default function DemoPage() {
                     setCorrectedAssets(originalAssets);
                     setFaceRotation(90); // Keep the initial face fix
                     setHelmetRotation(0);
-                    setFaceDepthRotation(0);
-                    setHelmetDepthRotation(0);
                   }}
                   variant="outline"
                   size="sm"

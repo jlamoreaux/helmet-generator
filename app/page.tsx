@@ -7,7 +7,6 @@ import ResultsDisplay from "./components/ResultsDisplay";
 import DebugPanel from "./components/DebugPanel";
 import Card from "./components/ui/Card";
 import ProgressSteps from "./components/ui/ProgressSteps";
-import Loading from "./components/ui/Loading";
 import ProgressiveLoading from "./components/ui/ProgressiveLoading";
 import { Step } from "./lib/types";
 import { STEPS } from "./lib/constants";
@@ -73,11 +72,11 @@ export default function Home() {
       }
       
       setCurrentStep("results");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Generation error:", err);
       
       // Extract error details from API response
-      let errorDetails = {
+      const errorDetails = {
         message: "Failed to generate helmet",
         type: "unknown_error",
         timestamp: new Date().toISOString()
@@ -87,10 +86,11 @@ export default function Home() {
         errorDetails.message = err.message;
       } else if (typeof err === 'string') {
         errorDetails.message = err;
-      } else if (err?.message) {
-        errorDetails.message = err.message;
-        errorDetails.type = err.type || "unknown_error";
-        errorDetails.timestamp = err.timestamp || new Date().toISOString();
+      } else if (typeof err === 'object' && err !== null && 'message' in err && err.message) {
+        const apiError = err as { message: string; type?: string; timestamp?: string };
+        errorDetails.message = apiError.message;
+        errorDetails.type = apiError.type || "unknown_error";
+        errorDetails.timestamp = apiError.timestamp || new Date().toISOString();
       }
       
       setError(errorDetails);

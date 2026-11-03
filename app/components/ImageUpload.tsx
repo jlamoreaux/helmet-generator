@@ -75,7 +75,7 @@ export default function ImageUpload({ onImageUpload }: ImageUploadProps) {
             📸 Important: Use a front-facing headshot only
           </p>
           <p className="text-blue-800 dark:text-blue-200 text-xs">
-            The helmet will be generated to match your face direction, so profile or angled photos won't work properly.
+            The helmet will be generated to match your face direction, so profile or angled photos won&apos;t work properly.
           </p>
         </div>
         

@@ -150,8 +150,8 @@ export async function detectFaceOrientation(imageUrl: string): Promise<{ rotatio
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Simple face detection heuristic: look for face-like patterns
-        const scores = [0, 90, 180, 270].map(rotation => {
-          return calculateFaceScore(imageData, rotation);
+        const scores = [0, 90, 180, 270].map(() => {
+          return calculateFaceScore(imageData);
         });
         
         const maxScore = Math.max(...scores);
@@ -177,7 +177,7 @@ export async function detectFaceOrientation(imageUrl: string): Promise<{ rotatio
  * Calculate a "face score" for an image at a given rotation
  * Higher scores indicate more face-like characteristics
  */
-function calculateFaceScore(imageData: ImageData, rotation: number): number {
+function calculateFaceScore(imageData: ImageData): number {
   const { data, width, height } = imageData;
   
   // Convert to grayscale and look for face-like patterns

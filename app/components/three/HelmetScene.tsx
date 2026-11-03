@@ -57,7 +57,7 @@ export default function HelmetScene({
   const mouseVelocityRef = useRef(0);
   const mouseDirectionRef = useRef({ x: 0, y: 0 });
   const trailPositionsRef = useRef<Array<{ x: number, y: number, time: number }>>([]);
-  const [currentTrailPositions, setCurrentTrailPositions] = useState<Array<{ x: number, y: number, time: number }>>([]);
+  const [trailPositions, setTrailPositions] = useState<Array<{ x: number, y: number, time: number }>>([]);
   const [mouseInitialized, setMouseInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -116,28 +116,6 @@ export default function HelmetScene({
     processAssets();
   }, [originalImage, helmetImage]);
   
-  // Main scene effect - rebuilds when processed assets are ready
-  useEffect(() => {
-    // Wait for processed assets to be ready
-    if (!processedAssets.faceImage || !processedAssets.helmetImage) {
-      return;
-    }
-    
-    if (!mountRef.current) return;
-
-    initializeScene();
-    
-    // Handle async asset loading properly
-    loadAssets().catch((error) => {
-      console.error('Failed to load 3D assets:', error);
-      setIsLoading(false);
-    });
-
-    return () => {
-      cleanup();
-    };
-  }, [processedAssets.faceImage, processedAssets.helmetImage, faceDepthMap, helmetDepthMap]); // Rebuild when processed assets change
-
   // Effect for cursor area and softness - updates shader uniforms without rebuilding
   useEffect(() => {
     if (!sceneRef.current) return;
@@ -261,7 +239,7 @@ export default function HelmetScene({
         ].slice(0, trailLength);
         
         trailPositionsRef.current = newTrail;
-        setCurrentTrailPositions([...newTrail]);
+        setTrailPositions([...newTrail]);
       }
     };
 
@@ -412,7 +390,7 @@ export default function HelmetScene({
       
       // Check if the program compiled successfully
       setTimeout(() => {
-        const program = (faceMaterial as any).program?.program;
+        const program = (faceMaterial as unknown as { program?: { program?: WebGLProgram } }).program?.program;
         if (program) {
           const gl = rendererRef.current!.getContext();
           if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -499,7 +477,6 @@ export default function HelmetScene({
       helmetMesh.material.uniforms.uTrailTimes.value = times;
       
       // Update mask based on mouse position with fluid motion
-      const mouseDistance = Math.sqrt(mouseRef.current.x ** 2 + mouseRef.current.y ** 2);
       const baseRadius = cursorAreaSizeRef.current;
       const velocityInfluence = mouseVelocityRef.current * 10;
       const maskRadius = Math.min(baseRadius + velocityInfluence, 0.9);
@@ -539,7 +516,7 @@ export default function HelmetScene({
           if (object.material instanceof THREE.Material) {
             // Dispose of textures in material uniforms
             if ('uniforms' in object.material && object.material.uniforms) {
-              const uniforms = object.material.uniforms as Record<string, { value: any }>;
+              const uniforms = object.material.uniforms as Record<string, { value: unknown }>;
               Object.values(uniforms).forEach((uniform) => {
                 if (uniform?.value instanceof THREE.Texture) {
                   uniform.value.dispose();
@@ -559,6 +536,32 @@ export default function HelmetScene({
     cameraRef.current = null;
   };
 
+  // Main scene effect - rebuilds when processed assets are ready
+  useEffect(() => {
+    // Wait for processed assets to be ready
+    if (!processedAssets.faceImage || !processedAssets.helmetImage) {
+      return;
+    }
+    
+    if (!mountRef.current) return;
+
+    initializeScene();
+    
+    // Handle async asset loading properly
+    loadAssets().catch((error) => {
+      console.error('Failed to load 3D assets:', error);
+      setIsLoading(false);
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [processedAssets.faceImage, processedAssets.helmetImage, faceDepthMap, helmetDepthMap]); // Rebuild when processed assets change
+
+  // The newest trail entry is the latest significant mouse position; it is state,
+  // so the cursor overlay re-renders from it instead of reading mouseRef during render.
+  const cursorPosition = trailPositions[0] ?? { x: 0, y: 0 };
+
   return (
     <div className="relative w-full h-full">
       <div 
@@ -577,8 +580,8 @@ export default function HelmetScene({
       <div 
         className="absolute pointer-events-none w-8 h-8 border-2 border-white rounded-full transform -translate-x-1/2 -translate-y-1/2 mix-blend-difference"
         style={{
-          left: `${((mouseRef.current.x + 1) * 0.5) * 100}%`,
-          top: `${((-mouseRef.current.y + 1) * 0.5) * 100}%`,
+          left: `${((cursorPosition.x + 1) * 0.5) * 100}%`,
+          top: `${((-cursorPosition.y + 1) * 0.5) * 100}%`,
         }}
       />
     </div>

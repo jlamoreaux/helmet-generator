@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const publicDir = path.join(process.cwd(), 'public/dev');
     
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           size: stats.size,
           modified: stats.mtime.toISOString()
         };
-      } catch (error) {
+      } catch {
         fileStatus[file] = {
           exists: false,
           error: 'File not found'
@@ -42,11 +42,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       directory: publicDir,
       files: fileStatus,
-      allPresent: Object.values(fileStatus).every((status: any) => status.exists)
+      allPresent: Object.values(fileStatus).every((status) => status.exists)
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: 'Failed to check assets', details: error.message },
+      { error: 'Failed to check assets', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

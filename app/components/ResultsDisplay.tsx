@@ -46,14 +46,13 @@ export default function ResultsDisplay({
   const [cursorSoftness, setCursorSoftness] = useState(0.1);
   
   // Helmet reveal trail controls
-  const [trailLength, setTrailLength] = useState(5);
-  const [trailSpeed, setTrailSpeed] = useState(0.8);
+  // Fixed values; there are no UI controls for the trail.
+  const trailLength = 5;
+  const trailSpeed = 0.8;
   
   // Image rotation controls 
   const [faceRotation, setFaceRotation] = useState(0); // Disable again to isolate issue
   const [helmetRotation, setHelmetRotation] = useState(0);
-  const [faceDepthRotation, setFaceDepthRotation] = useState(0);
-  const [helmetDepthRotation, setHelmetDepthRotation] = useState(0);
 
   // Original assets
   const originalAssets = {
@@ -66,15 +65,18 @@ export default function ResultsDisplay({
   // Corrected/rotated image states
   const [correctedAssets, setCorrectedAssets] = useState(originalAssets);
 
-  // Update corrected assets when props change
-  useEffect(() => {
-    setCorrectedAssets({
-      faceImage: processedFaceImage || '',
-      helmetImage: generatedHelmet || '',
-      faceDepthMap: faceDepthMap,
-      helmetDepthMap: helmetDepthMap
-    });
-  }, [processedFaceImage, generatedHelmet, faceDepthMap, helmetDepthMap]);
+  // Reset corrected assets when the source props change. Done during render
+  // (React's "adjusting state when a prop changes" pattern) instead of in an effect.
+  const [sourceAssets, setSourceAssets] = useState(originalAssets);
+  if (
+    sourceAssets.faceImage !== originalAssets.faceImage ||
+    sourceAssets.helmetImage !== originalAssets.helmetImage ||
+    sourceAssets.faceDepthMap !== originalAssets.faceDepthMap ||
+    sourceAssets.helmetDepthMap !== originalAssets.helmetDepthMap
+  ) {
+    setSourceAssets(originalAssets);
+    setCorrectedAssets(originalAssets);
+  }
 
   // Preload all images before rendering HelmetScene
   useEffect(() => {
@@ -266,10 +268,6 @@ export default function ResultsDisplay({
             setFaceRotation={setFaceRotation}
             helmetRotation={helmetRotation}
             setHelmetRotation={setHelmetRotation}
-            faceDepthRotation={faceDepthRotation}
-            setFaceDepthRotation={setFaceDepthRotation}
-            helmetDepthRotation={helmetDepthRotation}
-            setHelmetDepthRotation={setHelmetDepthRotation}
             originalAssets={originalAssets}
           />
         </div>

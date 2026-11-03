@@ -11,6 +11,13 @@ type HelmetResponse = Array<ImageResponse>;
 
 type ImageResponse = {url: () => UrlStream}
 
+function errorMessageOf(error: unknown): string | undefined {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return undefined;
+}
+
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
@@ -91,9 +98,9 @@ export async function POST(request: NextRequest) {
       try {
         const faceRemovalOutput = faceRemovalResult.value as ImageResponse;
         processedFaceImageData = faceRemovalOutput.url().href;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Face background removal processing failed:", error);
-        throw new Error(`Failed to process background removal result: ${error.message || 'Unknown error'}`);
+        throw new Error(`Failed to process background removal result: ${errorMessageOf(error) || 'Unknown error'}`);
       }
     } else {
       console.error("Face background removal failed:", faceRemovalResult.reason);
@@ -106,9 +113,9 @@ export async function POST(request: NextRequest) {
       try {
         const helmetOutput = helmetGenerationResult.value as HelmetResponse;
         processedHelmetImageUrl = helmetOutput[0].url().href;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Helmet generation processing failed:", error);
-        throw new Error(`Failed to process helmet generation result: ${error.message || 'Unknown error'}`);
+        throw new Error(`Failed to process helmet generation result: ${errorMessageOf(error) || 'Unknown error'}`);
       }
     } else {
       console.error("Helmet generation failed:", helmetGenerationResult.reason);
@@ -128,9 +135,9 @@ export async function POST(request: NextRequest) {
       ) as ImageResponse;
       
       processedHelmetImageData = helmetRemovalOutput.url().href;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Helmet background removal failed:", error);
-      throw new Error(`Failed to remove background from helmet: ${error.message || 'Unknown error'}. Please try again.`);
+      throw new Error(`Failed to remove background from helmet: ${errorMessageOf(error) || 'Unknown error'}. Please try again.`);
     }
 
     // STEP 3: Generate depth maps in parallel (now that we have both clean images)
@@ -186,7 +193,7 @@ export async function POST(request: NextRequest) {
           //     faceDepthOutput = `data:image/png;base64,${base64}`;
           //   }
           // }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.warn("❌ Face depth map processing failed:", error);
         }
       } else {
@@ -217,7 +224,7 @@ export async function POST(request: NextRequest) {
           //     helmetDepthOutput = `data:image/png;base64,${base64}`;
           //   }
           // }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.warn("❌ Helmet depth map processing failed:", error);
         }
       } else {
@@ -237,24 +244,25 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(responseData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating helmet:", error);
+    const message = errorMessageOf(error);
     
     // Return the specific error message if it's already user-friendly
-    let errorMessage = error.message || "Failed to generate helmet";
+    let errorMessage = message || "Failed to generate helmet";
     
     // Handle specific Replicate API errors
-    if (error.message?.includes("version") || error.message?.includes("permission")) {
+    if (message?.includes("version") || message?.includes("permission")) {
       errorMessage = "Model not available. Please check your Replicate configuration or try again later.";
-    } else if (error.message?.includes("timeout")) {
+    } else if (message?.includes("timeout")) {
       errorMessage = "Generation timed out. The AI model may be starting up - please try again in a moment.";
-    } else if (error.message?.includes("rate limit")) {
+    } else if (message?.includes("rate limit")) {
       errorMessage = "Too many requests. Please wait a moment and try again.";
-    } else if (error.message?.includes("credit") || error.message?.includes("quota")) {
+    } else if (message?.includes("credit") || message?.includes("quota")) {
       errorMessage = "Insufficient API credits. Please check your Replicate account.";
-    } else if (error.message?.includes("404") || error.message?.includes("not found")) {
+    } else if (message?.includes("404") || message?.includes("not found")) {
       errorMessage = "AI model not found. Please check the model configuration.";
-    } else if (!error.message?.includes("Failed to")) {
+    } else if (!message?.includes("Failed to")) {
       // If it's not already a user-friendly message, make it generic
       errorMessage = `Generation failed: ${errorMessage}. Please try again or contact support if the problem persists.`;
     }
